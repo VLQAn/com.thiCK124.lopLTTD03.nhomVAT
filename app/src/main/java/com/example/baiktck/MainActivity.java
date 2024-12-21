@@ -1,24 +1,102 @@
 package com.example.baiktck;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import java.util.ArrayList;
+import java.util.List;
 
-import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+public class Review extends Fragment {
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+    private String mParam1;
+    private String mParam2;
+    private RecyclerView videosRecyclerView;
+    private VideowatchAdapter videoAdapter;
+    private List<Videowatched> videoList;
 
-public class MainActivity extends AppCompatActivity {
+    public Review() {
+        // Required empty public constructor
+    }
+
+    public static Review newInstance(String param1, String param2) {
+        Review fragment = new Review();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+        }
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.activity_main, container, false);
+
+        setupRecyclerView(view);
+        fetchVideosFromFirebase();
+
+        return view;
+    }
+
+
+    private void setupClickListeners(View view) {
+        LinearLayout itemReviewVocab = view.findViewById(R.id.item_review_vocab);
+        LinearLayout itemReviewSentence = view.findViewById(R.id.item_review_sentence);
+
+
+    }
+
+    private void setupRecyclerView(View view) {
+        videosRecyclerView = view.findViewById(R.id.videos_recycler_view);
+        videosRecyclerView.setLayoutManager(new LinearLayoutManager(getContext())); // Thiết lập LinearLayoutManager
+
+        videoList = new ArrayList<>();
+        videoAdapter = new VideowatchAdapter(getContext(), videoList);
+        videosRecyclerView.setAdapter(videoAdapter); // Gán adapter
+    }
+
+    private void fetchVideosFromFirebase() {
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Videowatched");
+        databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                videoList.clear(); // Làm trống danh sách trước khi thêm dữ liệu mới
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    Videowatched video = snapshot.getValue(Videowatched.class);
+                    if (video != null) {
+                        videoList.add(video); // Thêm video vào danh sách
+                    }
+                }
+                videoAdapter.notifyDataSetChanged(); // Cập nhật RecyclerView
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Xử lý lỗi nếu xảy ra
+            }
         });
     }
 }
